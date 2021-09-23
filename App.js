@@ -1,112 +1,68 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- * @flow strict-local
- */
-
 import React from 'react';
-import type {Node} from 'react';
+import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+  DownloadDirectoryPath,
+  downloadFile,
+  readDir,
+  unlink,
+} from 'react-native-fs';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+const downloadUrl =
+  'https://appcenter-filemanagement-distrib2ede6f06e.azureedge.net/d9fed9d0-e39b-42f0-907d-863954fc37f8/Wings.apk?sv=2019-02-02&sr=c&sig=4kygLmGkvLjHSWm2%2F9yLfMnFPEF9FVHVEKyzfbHbNH8%3D&se=2021-09-23T08%3A56%3A44Z&sp=r';
 
-const Section = ({children, title}): Node => {
-  const isDarkMode = useColorScheme() === 'dark';
+async function downloadApk() {
+  try {
+    const result = await readDir(DownloadDirectoryPath);
+
+    await Promise.all(
+      result
+        .filter(file => {
+          const ext = file.name.split('.').pop();
+          return (
+            (file.name.includes('Wings') ||
+              file.name.includes('app-release')) &&
+            ext === 'apk'
+          );
+        })
+        .map(({path}) => {
+          return unlink(path);
+        }),
+    );
+  } catch (error) {
+    console.log(error);
+  }
+
+  const filePath = DownloadDirectoryPath + '/WingsApp.apk';
+  const download = downloadFile({
+    fromUrl: downloadUrl,
+    toFile: filePath,
+    progress: res => {
+      console.log(res);
+    },
+    progressDivider: 1,
+  });
+  download.promise
+    .then(res => {
+      if (res.statusCode === 200) {
+        console.log(res);
+        console.log('Success');
+      }
+    })
+    .catch(e => {
+      console.log(e);
+    });
+}
+
+export default function App() {
   return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
+    <View style={styles.container} variant={'scroll'}>
+      <TouchableOpacity onPress={downloadApk}>
+        <Text style={{lineHeight: 100}}>Download</Text>
+      </TouchableOpacity>
     </View>
   );
-};
-
-const App: () => Node = () => {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
-
-  return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.js</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-};
+}
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
+  container: {justifyContent: 'center', alignItems: 'center', flex: 1},
 });
-
-export default App;
